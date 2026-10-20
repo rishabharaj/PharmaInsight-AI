@@ -11,7 +11,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 
-DEFAULT_MODEL = "gpt-6-luna"
+DEFAULT_MODEL = "gpt-5-nano"
 
 
 _NUMERICAL_LANGUAGE = re.compile(
@@ -29,6 +29,16 @@ def safe_model_explanation(answer: str) -> bool:
     return bool(answer.strip()) and len(answer) <= 1400 and not _NUMERICAL_LANGUAGE.search(answer)
 
 
+def safe_qualitative_explanation(answer: str) -> str | None:
+    """Keep useful bullets when a model mixes them with an unsafe numeric claim."""
+    if safe_model_explanation(answer):
+        return answer.strip()
+    bullets = [line.strip() for line in answer.splitlines()
+               if line.lstrip().startswith("- ") and safe_model_explanation(line)]
+    cleaned = "\n".join(bullets[:4])
+    return cleaned if safe_model_explanation(cleaned) else None
+
+
 def configured_api_key(env_path: Path) -> str | None:
     """Read a local process variable or .env without exposing the value in output."""
     local_values = dotenv_values(env_path) if env_path.exists() else {}
@@ -42,7 +52,7 @@ def configured_api_key(env_path: Path) -> str | None:
 def chat_model(api_key: str):
     """Create the one configured OpenAI model for both AI features."""
     return ChatOpenAI(model=DEFAULT_MODEL, api_key=api_key, timeout=40,
-                      max_retries=1, use_responses_api=False, reasoning_effort="none")
+                      max_retries=1, use_responses_api=False, reasoning_effort="minimal")
 
 
 def offline_insight(facts: dict) -> str:
@@ -92,9 +102,10 @@ def cloud_llm_insight(facts: dict, api_key: str | None) -> tuple[str, str]:
         chain = prompt | chat_model(api_key) | StrOutputParser()
         answer = chain.invoke({"facts": json.dumps(facts, sort_keys=True)})
         # Reject a response with numerical claims; verified quantities remain in the UI.
-        if not safe_model_explanation(answer):
+        checked_answer = safe_qualitative_explanation(answer)
+        if not checked_answer:
             return fallback, "Offline summary (AI output contained a numerical claim or was malformed)"
-        return answer.strip(), f"OpenAI explanation via LangChain · {DEFAULT_MODEL}"
+        return checked_answer, f"OpenAI explanation via LangChain · {DEFAULT_MODEL}"
     except Exception as exc:
         # Avoid displaying exception messages because SDK errors can contain credentials.
         return fallback, f"Offline summary (API request failed: {type(exc).__name__})"

@@ -8,6 +8,8 @@ PharmaInsight AI is an interactive sales analytics app built with Streamlit, SQL
 - **Ask the data:** ask supported questions about product movement, regional performance, or monthly sales trends. The app runs predefined, parameterized SQL queries and shows the actual figures beside each answer.
 - **Generate business insights:** get a deterministic summary without an API key, or request a LangChain and OpenAI explanation of verified aggregate facts.
 
+The optional AI explanations use **`gpt-5-nano`**. OpenAI bills API usage by tokens, including this lower-cost model; the dashboard and verified SQL summaries do not require an API call. OpenAI currently marks `gpt-5-nano` as deprecated, so it may need replacing in a future update.
+
 Try asking: **“Which medicine performed poorly last month, and what should we do?”** The app compares each selected product across the latest two complete months in the dataset, identifies revenue declines, and suggests checks before making a business decision. For the included sample, this compares November and December 2025.
 
 ## How it works

@@ -10,6 +10,7 @@ from pharma_insight.generator import generate_csv
 from pharma_insight.insights import (
     cloud_llm_insight, configured_api_key, offline_insight,
     safe_model_explanation,
+    safe_qualitative_explanation,
 )
 from pharma_insight.qa import answer_question, choose_query, run_safe_tool
 
@@ -97,6 +98,10 @@ def test_offline_insight_and_langchain_pipeline(demo, monkeypatch):
     assert safe_model_explanation("Investigate regional coverage before changing targets.")
     assert not safe_model_explanation("Revenue rose twelve percent.")
     assert not safe_model_explanation("Revenue rose 12%.")
+    cleaned = safe_qualitative_explanation(
+        "- Check stock availability.\n- Only one region is in scope.\n- Review territory mix."
+    )
+    assert cleaned == "- Check stock availability.\n- Review territory mix."
 
 
 def test_local_env_placeholder_and_key(tmp_path, monkeypatch):
